@@ -1,0 +1,21 @@
+{
+  "name": "mundos-ia",
+  "version": "1.0.0",
+  "description": "Genera bocetos visuales de mundos imaginarios con IA desde la consola",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "ia",
+    "node",
+    "fetch",
+    "mundos",
+    "sena"
+  ],
+  "author": "Oliver",
+  "license": "ISC",
+  "dependencies": {
+    "object-hash": "^3.0.0"
+  }
+}
