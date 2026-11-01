@@ -55,9 +55,35 @@ function explicarError(error) {
     return error.message;
 }
 
+function validarVariablesEntorno() {
+    const variablesRequeridas = [
+        'TEXTO_API_KEY',
+        'TEXTO_URL',
+        'TEXTO_MODELO',
+        'IMAGEN_URL',
+    ];
+    const variablesFaltantes = [];
+
+    for (let i = 0; i < variablesRequeridas.length; i++) {
+        const nombre = variablesRequeridas[i];
+        if (!process.env[nombre] || process.env[nombre].trim() === '') {
+            variablesFaltantes.push(nombre);
+        }
+    }
+
+    if (variablesFaltantes.length > 0) {
+        const error = new Error(
+            `Faltan variables de entorno: ${variablesFaltantes.join(', ')}. Revisa el archivo .env.`
+        );
+        error.code = 'MISSING_ENV';
+        throw error;
+    }
+}
+
 async function main() {
     try {
         process.loadEnvFile(path.join(RAIZ, '.env'));
+        validarVariablesEntorno();
 
         const argumentos = process.argv.slice(2);
         const nuevoMundo = crearMundo(argumentos);

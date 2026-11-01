@@ -124,18 +124,48 @@ mundos-ia/
 ### 1. Resultado CON `.gitignore` activo
 
 ```text
-[PEGA AQUÍ LA SALIDA DE: npm publish --dry-run CON .gitignore]
+npm notice Tarball Contents
+npm notice 173B .env.example
+npm notice 23.0kB PROMPT.md
+npm notice 10.1kB README.md
+npm notice 393B package.json
+npm notice 1.5kB src/imagen.js
+npm notice 4.5kB src/index.js
+npm notice 2.1kB src/mundo.js
+npm notice 2.2kB src/texto.js
+npm notice total files: 21
 ```
 
 ### 2. Resultado SIN `.gitignore` (renombrado temporalmente)
 
 ```text
-[PEGA AQUÍ LA SALIDA DE: npm publish --dry-run SIN .gitignore]
+npm notice Tarball Contents
+npm notice 209B .env
+npm notice 173B .env.example
+npm notice 51B .gitignore.experimento
+npm notice 23.0kB PROMPT.md
+npm notice 10.1kB README.md
+npm notice 302B data/mundo_1ae95a64.json
+npm notice 316B data/mundo_bb2f2b00.json
+npm notice 734B descripciones/mundo_1ae95a64.txt
+npm notice 681B descripciones/mundo_bb2f2b00.txt
+npm notice 49.4kB imagenes/mundo_1ae95a64.jpg
+npm notice 53.3kB imagenes/mundo_bb2f2b00.jpg
+npm notice total files: 29
 ```
 
 ### 3. Análisis: ¿qué cambió y por qué sería peligroso publicar `.env`?
 
-<!-- Escribe aquí con tus propias palabras qué archivos aparecieron al quitar .gitignore y por qué publicar .env en un registro público como npm sería peligroso -->
+Con `.gitignore` activo, npm excluyó `.env`, `data/`, `descripciones/` e
+`imagenes/`, que contienen configuración local y archivos generados. Al quitarlo
+temporalmente, esos archivos aparecieron en el paquete; también apareció el
+archivo renombrado `.gitignore.experimento`.
+
+Publicar `.env` sería peligroso porque contiene la API key de Groq y otros datos
+de configuración. Cualquier persona que descargara el paquete podría copiar la
+clave, consumir la cuota, generar costos o acceder indebidamente al servicio.
+Por eso `.env` debe permanecer ignorado y solo se debe publicar `.env.example`
+sin secretos.
 
 ---
 
@@ -143,24 +173,48 @@ mundos-ia/
 
 ### 1. ¿Por qué el `id` se calcula sin incluir la fecha (`creadoEn`)?
 
-<!-- Escribe aquí tu respuesta con tus propias palabras (2 a 4 líneas) -->
+El `id` debe depender solo de los datos que identifican al mundo: la situación,
+el mundo y sus cinco colores. Si se incluyera `creadoEn`, cada ejecución produciría
+un identificador diferente aunque los argumentos fueran exactamente iguales.
+Al excluir la fecha, el mismo mundo reutiliza su JSON, su descripción y su imagen.
 
 ### 2. ¿Por qué el texto descriptivo se pide en inglés?
 
-<!-- Escribe aquí tu respuesta con tus propias palabras (2 a 4 líneas) -->
+Se pide en inglés porque ese es el formato elegido para entregar la descripción
+al servicio de generación de imágenes y facilita usar un vocabulario visual
+amplio y consistente. El modelo de texto recibe el JSON, pero responde un único
+párrafo en inglés de entre 80 y 120 palabras, sin títulos ni formato adicional.
 
 ### 3. ¿Qué diferencia hay entre recibir un JSON de texto y recibir los bytes de una imagen, y qué es base64?
 
-<!-- Escribe aquí tu respuesta con tus propias palabras (2 a 4 líneas) -->
+El JSON de texto contiene datos estructurados y legibles, como `choices` y el
+contenido de la descripción; se puede leer con `respuesta.json()`. La imagen no
+se debe tratar como texto: Pollinations entrega bytes binarios, que se leen con
+`arrayBuffer()` y se convierten en un `Buffer`. Base64 es una forma de representar
+bytes binarios como una cadena de texto; algunos servicios la usan dentro de un
+JSON, pero este proyecto recibe directamente los bytes JPEG.
 
 ### 4. ¿Qué pasa si guardas la imagen usando `'utf-8'` en `fs.writeFileSync`?
 
-<!-- Escribe aquí tu respuesta con tus propias palabras (2 a 4 líneas) -->
+Los bytes de la imagen podrían interpretarse como caracteres y modificarse al
+codificarlos como texto UTF-8. El archivo resultante podría quedar corrupto y no
+abrirse como JPEG. Por eso se pasa directamente el `Buffer` a `writeFileSync`,
+sin indicar `'utf-8'`.
 
 ### 5. ¿Qué pasos consumen cuota de las APIs y cómo evitaste repetirlos?
 
-<!-- Escribe aquí tu respuesta con tus propias palabras (2 a 4 líneas) -->
+El Paso 2 consume cuota cuando llama al modelo de texto de Groq para generar la
+descripción. El Paso 3 consume el servicio de imágenes cuando solicita el JPEG a
+Pollinations; el Paso 1 es local y no consume cuota. Antes de llamar a cada API,
+el programa comprueba con `fs.existsSync` si ya existe el `.txt` o el `.jpg` del
+mismo `id` y reutiliza el archivo encontrado.
 
 ### 6. Si usaste IA: ¿qué fue lo más difícil de pedirle y qué corregiste tú?
 
-<!-- Escribe aquí tu respuesta con tus propias palabras (2 a 4 líneas) -->
+Lo más difícil fue pedirle que mantuviera una sintaxis sencilla, respetara el
+flujo por archivos y manejara correctamente respuestas JSON, errores HTTP,
+timeouts y bytes de imagen. También fue necesario cambiar el servicio de imágenes
+cuando NVIDIA agotaba el tiempo de espera y Gemini devolvía `HTTP 429`.
+Yo probé las peticiones, cambié la configuración a Pollinations, eliminé una
+línea temporal de `DEBUG`, limpié variables antiguas exportadas en la terminal y
+verifiqué que el JPEG se guardara correctamente.

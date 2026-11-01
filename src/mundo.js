@@ -60,7 +60,6 @@ function crearMundo(args) {
   };
 }
 
-// Paso 1.4: crear la carpeta data/ si no existe y guardar el mundo como JSON
 function guardarMundo(mundo) {
   fs.mkdirSync(CARPETA_DATA, { recursive: true });
   const rutaArchivo = path.join(CARPETA_DATA, `mundo_${mundo.id}.json`);
@@ -69,14 +68,12 @@ function guardarMundo(mundo) {
   return rutaArchivo;
 }
 
-// Paso 1.5: leer el archivo JSON desde el disco y convertirlo de nuevo en objeto
 function leerMundo(ruta) {
   const textoJson = fs.readFileSync(ruta, 'utf-8');
   const objetoMundo = JSON.parse(textoJson);
   return objetoMundo;
 }
 
-// Paso 1.6: exportar las funciones para usarlas desde index.js
 module.exports = {
   crearMundo: crearMundo,
   guardarMundo: guardarMundo,
