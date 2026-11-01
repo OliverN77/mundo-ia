@@ -3,14 +3,56 @@ const fs = require('fs');
 const path = require('path');
 const { crearMundo, guardarMundo, leerMundo } = require('./mundo');
 const { describirMundo } = require('./texto');
+const { generarImagen } = require('./imagen');
 
 // Definir rutas principales desde la ubicación de este archivo
 const RAIZ = path.join(__dirname, '..');
 const CARPETA_DESC = path.join(RAIZ, 'descripciones');
+const CARPETA_IMG = path.join(RAIZ, 'imagenes');
 
+// Paso 0.1: traducir errores técnicos y códigos HTTP a mensajes claros en español
+function explicarError(error) {
+  if (error.name === 'TimeoutError') {
+    return 'El servicio tardó demasiado en responder.';
+  }
+
+  if (error.name === 'TypeError') {
+    return 'No se pudo conectar. Revisa tu conexión a internet o la URL en .env.';
+  }
+
+  if (error.code === 'ENOENT') {
+    return 'No se encontró un archivo requerido. Verifica que el archivo .env exista.';
+  }
+
+  if (error.status === 401 || error.status === 403) {
+    return `La API key no es válida o no tiene permisos (código ${error.status}). Revisa tu archivo .env.`;
+  }
+
+  if (error.status === 402 || error.status === 429) {
+    let detalleEspera = ' Espera un momento antes de volver a intentar.';
+    if (error.origen === 'imagen') {
+      detalleEspera = ' En el servicio de imágenes debes esperar unos 45 segundos.';
+    }
+    if (error.retryAfter) {
+      detalleEspera = `${detalleEspera} Tiempo sugerido: ${error.retryAfter} segundos.`;
+    }
+    return `Superaste el límite gratuito (código ${error.status}).${detalleEspera}`;
+  }
+
+  if (error.status === 404 || error.status === 410) {
+    return `El modelo o la URL no existen (código ${error.status}). Revisa tu configuración en .env.`;
+  }
+
+  if (error.status) {
+    return `El servicio devolvió un error al procesar la petición (código ${error.status}).`;
+  }
+
+  return error.message;
+}
+
+// Paso 0.2: función principal que orquesta los 3 pasos y reutiliza archivos existentes
 async function main() {
   try {
-    // Paso 0.1: cargar las variables del archivo .env
     process.loadEnvFile(path.join(RAIZ, '.env'));
 
     // Paso 1: validar argumentos, guardar el JSON y volver a leerlo desde el disco
@@ -21,18 +63,34 @@ async function main() {
 
     const mundoGuardado = leerMundo(rutaJson);
 
-    // Paso 2: enviar el JSON leído al modelo de texto y guardar la descripción en .txt
-    const descripcion = await describirMundo(mundoGuardado);
+    // Paso 2: reutilizar la descripción si ya existe, o llamar al modelo de texto
     fs.mkdirSync(CARPETA_DESC, { recursive: true });
     const rutaTxt = path.join(CARPETA_DESC, `mundo_${mundoGuardado.id}.txt`);
-    fs.writeFileSync(rutaTxt, descripcion, 'utf-8');
-    console.log(`Paso 2: descripción guardada en descripciones/mundo_${mundoGuardado.id}.txt`);
-  } catch (error) {
-    if (error.status) {
-      console.error(`Error: ${error.message} (código ${error.status})`);
+
+    if (fs.existsSync(rutaTxt)) {
+      console.log('Paso 2: la descripción ya existía, no se llamó al modelo de texto.');
     } else {
-      console.error(`Error: ${error.message}`);
+      const descripcion = await describirMundo(mundoGuardado);
+      fs.writeFileSync(rutaTxt, descripcion, 'utf-8');
+      console.log(`Paso 2: descripción guardada en descripciones/mundo_${mundoGuardado.id}.txt`);
     }
+
+    // Paso 3: reutilizar la imagen si ya existe, o leer el .txt y llamar a Pollinations
+    fs.mkdirSync(CARPETA_IMG, { recursive: true });
+    const rutaImagen = path.join(CARPETA_IMG, `mundo_${mundoGuardado.id}.jpg`);
+
+    if (fs.existsSync(rutaImagen)) {
+      console.log('Paso 3: la imagen ya existía, no se llamó al modelo de imágenes.');
+    } else {
+      const descripcionGuardada = fs.readFileSync(rutaTxt, 'utf-8');
+      const bytesImagen = await generarImagen(descripcionGuardada);
+      fs.writeFileSync(rutaImagen, bytesImagen);
+      console.log(`Paso 3: imagen guardada en imagenes/mundo_${mundoGuardado.id}.jpg`);
+    }
+
+    console.log('Listo. Revisa la carpeta imagenes/');
+  } catch (error) {
+    console.error(`Error: ${explicarError(error)}`);
     process.exitCode = 1;
   }
 }
