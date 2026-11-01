@@ -1,14 +1,11 @@
-// Paso 1.0: importar módulos nativos (fs, path) y el paquete object-hash
 const fs = require('fs');
 const path = require('path');
 const hash = require('object-hash');
 
-// Paso 1.1: definir la ruta de la carpeta data/ y el mensaje de ejemplo
 const CARPETA_DATA = path.join(__dirname, '..', 'data');
 const EJEMPLO_USO =
   'Ejemplo: npm start -- "Una tormenta amenaza la ciudad" "Aerópolis, ciudad flotante" rojo azul verde dorado violeta';
 
-// Paso 1.2: validar que lleguen 7 argumentos, sin vacíos y con 5 colores distintos
 function validarArgumentos(args) {
   if (args.length !== 7) {
     throw new Error(
@@ -36,7 +33,6 @@ function validarArgumentos(args) {
   }
 }
 
-// Paso 1.3: construir el objeto del mundo y calcular su id único sin incluir la fecha
 function crearMundo(args) {
   validarArgumentos(args);
 

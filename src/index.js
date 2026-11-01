@@ -1,16 +1,13 @@
-// Paso 0: importar módulos nativos y nuestras funciones locales
 const fs = require('fs');
 const path = require('path');
 const { crearMundo, guardarMundo, leerMundo } = require('./mundo');
 const { describirMundo } = require('./texto');
 const { generarImagen } = require('./imagen');
 
-// Definir rutas principales desde la ubicación de este archivo
 const RAIZ = path.join(__dirname, '..');
 const CARPETA_DESC = path.join(RAIZ, 'descripciones');
 const CARPETA_IMG = path.join(RAIZ, 'imagenes');
 
-// Paso 0.1: traducir errores técnicos y códigos HTTP a mensajes claros en español
 function explicarError(error) {
     if (error.name === 'TimeoutError') {
         return 'El servicio tardó demasiado en responder.';
@@ -58,12 +55,10 @@ function explicarError(error) {
     return error.message;
 }
 
-// Paso 0.2: función principal que orquesta los 3 pasos y reutiliza archivos existentes
 async function main() {
     try {
         process.loadEnvFile(path.join(RAIZ, '.env'));
 
-        // Paso 1: validar argumentos, guardar el JSON y volver a leerlo desde el disco
         const argumentos = process.argv.slice(2);
         const nuevoMundo = crearMundo(argumentos);
         const rutaJson = guardarMundo(nuevoMundo);
@@ -71,7 +66,6 @@ async function main() {
 
         const mundoGuardado = leerMundo(rutaJson);
 
-        // Paso 2: reutilizar la descripción si ya existe, o llamar al modelo de texto
         fs.mkdirSync(CARPETA_DESC, { recursive: true });
         const rutaTxt = path.join(CARPETA_DESC, `mundo_${mundoGuardado.id}.txt`);
 
@@ -83,7 +77,6 @@ async function main() {
             console.log(`Paso 2: descripción guardada en descripciones/mundo_${mundoGuardado.id}.txt`);
         }
 
-        // Paso 3: reutilizar la imagen si ya existe, o leer el .txt y llamar a Pollinations
         fs.mkdirSync(CARPETA_IMG, { recursive: true });
         const rutaImagen = path.join(CARPETA_IMG, `mundo_${mundoGuardado.id}.jpg`);
 
